@@ -8,7 +8,12 @@ authors = ["Xanthorrhizol <xanthorrhizol@proton.me>"]
 name = "report"
 path = "src/bin/report.rs"
 
+[[bin]]
+name = "update"
+path = "src/bin/update.rs"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 csv = "1.2.2"
+reqwest = "0.11.20"
