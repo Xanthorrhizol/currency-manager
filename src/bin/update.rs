@@ -35,8 +35,8 @@ async fn main() {
                     if let JsonValue::Object(o) = elem {
                         let currency_type =
                             o.get("통화CODE").unwrap().as_str().unwrap().to_string();
-                        let to_won = o.get("지폐매입환율").unwrap().as_f32().unwrap();
-                        map.insert(currency_type, to_won);
+                        let to_krw = o.get("지폐매입환율").unwrap().as_f32().unwrap();
+                        map.insert(currency_type, to_krw);
                     }
                 }
             }
@@ -47,15 +47,15 @@ async fn main() {
     };
 
     let mut file = File::options().append(true).open(path).unwrap();
-    let won_diff = 0;
-    let yen_diff = 0;
-    let dollar_diff = 0;
-    let yen_to_won = res.get("JPY").unwrap();
-    let dollar_to_won = res.get("USD").unwrap();
+    let krw_diff = 0;
+    let jpy_diff = 0;
+    let usd_diff = 0;
+    let jpy_to_krw = res.get("JPY").unwrap();
+    let usd_to_krw = res.get("USD").unwrap();
     let _ = file.write(
         format!(
             "{},{},{},{},{},{}\n",
-            date, won_diff, yen_diff, dollar_diff, yen_to_won, dollar_to_won,
+            date, krw_diff, jpy_diff, usd_diff, jpy_to_krw, usd_to_krw,
         )
         .as_bytes(),
     );

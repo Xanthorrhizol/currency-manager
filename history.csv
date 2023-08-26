@@ -1,3 +1,3 @@
-date,won_diff,yen_diff,dollar_diff,yen_to_won,dollar_to_won
+date,krw_diff,jpy_diff,usd_diff,jpy_to_krw,usd_to_krw
 initial,0,0,1012.85,891.04,1300.83
 2023-08-24,-4652977,510000,0,891.04,1300.83
