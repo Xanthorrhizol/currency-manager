@@ -54,7 +54,7 @@ async fn main() {
     let dollar_to_won = res.get("USD").unwrap();
     let _ = file.write(
         format!(
-            "{},{},{},{},{},{}",
+            "{},{},{},{},{},{}\n",
             date, won_diff, yen_diff, dollar_diff, yen_to_won, dollar_to_won,
         )
         .as_bytes(),
