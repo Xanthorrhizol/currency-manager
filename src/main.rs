@@ -1,32 +1,19 @@
+mod types;
+
 use chrono::Utc;
 use csv::Reader;
-use json::JsonValue;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::{fs::File, io::Write};
 use structopt::StructOpt;
-
-#[derive(Debug, StructOpt)]
-#[structopt(name = "update", about = "Update")]
-enum Opt {
-    Report {
-        #[structopt(short, long)]
-        csv_path: PathBuf,
-    },
-    Update {
-        #[structopt(short, long)]
-        csv_path: PathBuf,
-        #[structopt(short, long)]
-        date: Option<String>,
-    },
-}
+use types::{args::Args, request::CurrencyRateRequest, response::CurrencyRateResponse};
 
 #[tokio::main]
 async fn main() {
-    let opt: Opt = Opt::from_args();
-    match opt {
-        Opt::Report { csv_path } => report(csv_path),
-        Opt::Update { csv_path, date } => update(csv_path, date).await,
+    let args: Args = Args::from_args();
+    match args {
+        Args::Report { csv_path } => report(csv_path),
+        Args::Update { csv_path, date } => update(csv_path, date).await,
     }
 }
 
@@ -54,38 +41,33 @@ async fn update(path: PathBuf, date: Option<String>) {
     };
     let mut file = File::options().append(true).open(path).unwrap();
     for date in dates.iter() {
-        let body = format!("{{\"dataBody\":{{\"ricInptRootInfo\":{{\"serviceType\":\"GU\",\"serviceCode\":\"F3733\",\"nextServiceCode\":\"\",\"pkcs7Data\":\"\",\"signCode\":\"\",\"signData\":\"\",\"useSign\":\"\",\"useCert\":\"\",\"permitMultiTransaction\":\"\",\"keepTransactionSession\":\"\",\"skipErrorMsg\":\"\",\"mode\":\"\",\"language\":\"ko\",\"exe2e\":\"\",\"hideProcess\":\"\",\"clearTarget\":\"\",\"callBack\":\"shbObj.fncF3733Callback\",\"exceptionCallback\":\"\",\"requestMessage\":\"\",\"responseMessage\":\"\",\"serviceOption\":\"\",\"pcLog\":\"\",\"preInqForMulti\":\"\",\"makesum\":\"\",\"removeIndex\":\"\",\"redirectUrl\":\"\",\"preInqKey\":\"\",\"_multi_transfer_\":\"\",\"_multi_transfer_count_\":\"\",\"_multi_transfer_amt_\":\"\",\"userCallback\":\"\",\"menuCode\":\"\",\"certtype\":\"\",\"fromMulti\":\"\",\"fromMultiIdx\":\"\",\"isRule\":\"N\",\"webUri\":\"/index.jsp\",\"gubun\":\"\",\"tmpField2\":\"\"}},\"조회구분\":\"\",\"조회일자\":\"{}{}{}\",\"고시회차\":\"\"}},\"dataHeader\":{{\"trxCd\":\"RSRFO0100A01\",\"language\":\"ko\",\"subChannel\":\"49\",\"channelGbn\":\"D0\"}}}}", &date[0..4], &date[5..7], &date[8..10]);
+        let shortdate = format!("{}{}{}", &date[0..4], &date[5..7], &date[8..10]);
+        let request = CurrencyRateRequest::new(&shortdate);
         let client = reqwest::Client::new();
-        let res = if let JsonValue::Object(o) = json::parse(
-            &client
-                .post("https://bank.shinhan.com/serviceEndpoint/httpDigital")
-                .body(body)
-                .header("Content-Type", "application/json")
-                .send()
-                .await
-                .unwrap()
-                .text()
-                .await
-                .unwrap(),
-        )
-        .unwrap()
-        {
+        let raw_res = client
+            .post("https://bank.shinhan.com/serviceEndpoint/httpDigital")
+            .body(serde_json::to_string(&request).unwrap())
+            .header("Content-Type", "application/json")
+            .send()
+            .await
+            .unwrap()
+            .text()
+            .await
+            .unwrap();
+        let res = {
             let mut map = HashMap::new();
-            if let Some(JsonValue::Object(o)) = o.get("dataBody") {
-                if let Some(JsonValue::Array(array)) = o.get("R_RIBF3733_1") {
-                    for elem in array.iter() {
-                        if let JsonValue::Object(o) = elem {
-                            let currency_type =
-                                o.get("통화CODE").unwrap().as_str().unwrap().to_string();
-                            let to_krw = o.get("지폐매입환율").unwrap().as_f32().unwrap();
-                            map.insert(currency_type, to_krw);
-                        }
-                    }
-                }
+            for currency_info in serde_json::from_str::<CurrencyRateResponse>(&raw_res)
+                .unwrap()
+                .data_body
+                .currency_info
+                .iter()
+            {
+                map.insert(
+                    currency_info.currency_code.clone(),
+                    currency_info.bill_buy_exchange_rate,
+                );
             }
             map
-        } else {
-            panic!("couldn't get data from shinhan bank");
         };
 
         let krw_diff = 0;
