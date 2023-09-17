@@ -12,7 +12,7 @@ You should match the csv file's format same with history.csv
 
 ### Update
 
-- When update for today
+- When update for until today
 
 ```bash
 cargo run --csv-path <csv file path>
