@@ -22,11 +22,7 @@ async fn update(path: PathBuf, date: Option<String>) {
         Some(d) => vec![d],
         None => {
             let mut reader = Reader::from_path(path.clone()).unwrap();
-            let mut date = Utc::now()
-                .naive_local()
-                .date()
-                .checked_sub_days(chrono::Days::new(1))
-                .unwrap_or(Utc::now().naive_local().date());
+            let mut date = Utc::now().naive_local().date();
             let mut dates = Vec::new();
             match reader.records().last() {
                 Some(Ok(record)) => {
